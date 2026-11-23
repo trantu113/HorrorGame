@@ -1,0 +1,16 @@
+# Unreal Engine build & cache folders
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+Build/
+
+# Rider / JetBrains / Xcode / macOS junk
+.idea/
+*.xcworkspace
+*.xcodeproj
+.DS_Store
+
+# Visual Studio / VS Code if any
+.vs/
+*.sln
