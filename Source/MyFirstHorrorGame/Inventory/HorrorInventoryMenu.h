@@ -7,6 +7,7 @@
 class UHorrorInventoryComponent;
 class UHorrorInventorySlotWidget;
 class UHorrorItemDefinition;
+class UImage;
 class UTextBlock;
 class UUniformGridPanel;
 
@@ -35,6 +36,9 @@ private:
 
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UTextBlock> ItemDescriptionText;
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UImage> ItemPreview;
 
 	UPROPERTY(EditDefaultsOnly, Category="Inventory")
 	TSubclassOf<UHorrorInventorySlotWidget> SlotWidgetClass;

@@ -19,6 +19,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Item")
 	TObjectPtr<UTexture2D> Icon;
 
+	/** Optional inspection artwork. The menu falls back to Icon when unset. */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Item")
+	TObjectPtr<UTexture2D> LargePreviewImage;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Item", meta=(MultiLine="true"))
 	FText Description;
 

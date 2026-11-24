@@ -1,5 +1,7 @@
 #include "HorrorInventoryMenu.h"
 #include "Components/TextBlock.h"
+#include "Components/Image.h"
+#include "Engine/Texture2D.h"
 #include "Components/UniformGridPanel.h"
 #include "GameFramework/PlayerController.h"
 #include "HorrorInventoryComponent.h"
@@ -62,6 +64,17 @@ void UHorrorInventoryMenu::ShowItem(UHorrorInventorySlotWidget* Slot, const UHor
 	HoveredSlot = Slot;
 	ItemNameText->SetText(IsValid(Item) ? Item->DisplayName : FText::GetEmpty());
 	ItemDescriptionText->SetText(IsValid(Item) ? Item->Description : FText::GetEmpty());
+
+	if (IsValid(ItemPreview))
+	{
+		UTexture2D* Texture = nullptr;
+		if (IsValid(Item))
+		{
+			Texture = IsValid(Item->LargePreviewImage) ? Item->LargePreviewImage.Get() : Item->Icon.Get();
+		}
+		ItemPreview->SetBrushFromTexture(Texture, true);
+		ItemPreview->SetVisibility(IsValid(Texture) ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
 }
 
 void UHorrorInventoryMenu::ClearItem(const UHorrorInventorySlotWidget* Slot)

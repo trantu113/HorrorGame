@@ -1,5 +1,6 @@
 #include "HorrorInventorySlotWidget.h"
 #include "Components/Image.h"
+#include "Components/Border.h"
 #include "Components/TextBlock.h"
 #include "Engine/Texture2D.h"
 #include "HorrorInventoryMenu.h"
@@ -9,6 +10,7 @@ void UHorrorInventorySlotWidget::SetSlot(UHorrorInventoryMenu* InMenu, UHorrorIt
 {
 	Menu = InMenu;
 	Item = InItem;
+	SetHighlightVisible(false);
 
 	UTexture2D* Icon = IsValid(InItem) ? InItem->Icon.Get() : nullptr;
 	ItemIcon->SetBrushFromTexture(Icon);
@@ -23,9 +25,18 @@ void UHorrorInventorySlotWidget::SetSlot(UHorrorInventoryMenu* InMenu, UHorrorIt
 		? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
 }
 
+void UHorrorInventorySlotWidget::SetHighlightVisible(bool bVisible)
+{
+	if (IsValid(HoverOutline))
+	{
+		HoverOutline->SetVisibility(bVisible ? ESlateVisibility::HitTestInvisible : ESlateVisibility::Collapsed);
+	}
+}
+
 void UHorrorInventorySlotWidget::NativeOnMouseEnter(const FGeometry& Geometry, const FPointerEvent& Event)
 {
 	Super::NativeOnMouseEnter(Geometry, Event);
+	SetHighlightVisible(true);
 	if (UHorrorInventoryMenu* InventoryMenu = Menu.Get())
 	{
 		InventoryMenu->ShowItem(this, Item.Get());
@@ -35,6 +46,7 @@ void UHorrorInventorySlotWidget::NativeOnMouseEnter(const FGeometry& Geometry, c
 void UHorrorInventorySlotWidget::NativeOnMouseLeave(const FPointerEvent& Event)
 {
 	Super::NativeOnMouseLeave(Event);
+	SetHighlightVisible(false);
 	if (UHorrorInventoryMenu* InventoryMenu = Menu.Get())
 	{
 		InventoryMenu->ClearItem(this);

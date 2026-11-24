@@ -6,6 +6,7 @@
 
 class UHorrorInventoryMenu;
 class UHorrorItemDefinition;
+class UBorder;
 class UImage;
 class UTextBlock;
 
@@ -22,6 +23,11 @@ protected:
 	virtual void NativeOnMouseLeave(const FPointerEvent& Event) override;
 
 private:
+	void SetHighlightVisible(bool bVisible);
+
+	UPROPERTY(meta=(BindWidgetOptional))
+	TObjectPtr<UBorder> HoverOutline;
+
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UImage> ItemIcon;
 
