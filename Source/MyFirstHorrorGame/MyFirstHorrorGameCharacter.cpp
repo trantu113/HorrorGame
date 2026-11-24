@@ -38,7 +38,7 @@ AMyFirstHorrorGameCharacter::AMyFirstHorrorGameCharacter()
 	// instead of recompiling to adjust them
 	GetCharacterMovement()->JumpZVelocity = 500.f;
 	GetCharacterMovement()->AirControl = 0.35f;
-	GetCharacterMovement()->MaxWalkSpeed = 500.f;
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 2000.f;
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
@@ -68,11 +68,66 @@ AMyFirstHorrorGameCharacter::AMyFirstHorrorGameCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
 
+void AMyFirstHorrorGameCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	ResetWalkSpeed();
+}
+
+void AMyFirstHorrorGameCharacter::StartSprint()
+{
+	if (!InventoryMenu)
+	{
+		GetWorldTimerManager().ClearTimer(WalkTransitionTimer);
+		GetCharacterMovement()->MaxWalkSpeed = FMath::Max(WalkSpeed, SprintSpeed);
+	}
+}
+
+void AMyFirstHorrorGameCharacter::ReleaseSprint()
+{
+	ReleaseStartSpeed = GetCharacterMovement()->MaxWalkSpeed;
+	if (InventoryMenu || SprintReleaseDuration <= 0.0f || ReleaseStartSpeed <= WalkSpeed)
+	{
+		ResetWalkSpeed();
+		return;
+	}
+
+	SprintReleaseTime = GetWorld()->GetTimeSeconds();
+	GetWorldTimerManager().SetTimer(WalkTransitionTimer, this,
+		&AMyFirstHorrorGameCharacter::UpdateWalkTransition, 1.0f / 60.0f, true);
+}
+
+void AMyFirstHorrorGameCharacter::UpdateWalkTransition()
+{
+	const double Elapsed = GetWorld()->GetTimeSeconds() - SprintReleaseTime;
+	if (Elapsed >= SprintReleaseDuration)
+	{
+		ResetWalkSpeed();
+		return;
+	}
+
+	const float Alpha = static_cast<float>(Elapsed / SprintReleaseDuration);
+	GetCharacterMovement()->MaxWalkSpeed = FMath::Lerp(ReleaseStartSpeed, WalkSpeed, Alpha);
+}
+
+void AMyFirstHorrorGameCharacter::ResetWalkSpeed()
+{
+	GetWorldTimerManager().ClearTimer(WalkTransitionTimer);
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+}
+
 void AMyFirstHorrorGameCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
 		
+		if (IsValid(SprintAction))
+		{
+			EnhancedInputComponent->BindAction(SprintAction.Get(), ETriggerEvent::Started, this, &AMyFirstHorrorGameCharacter::StartSprint);
+			EnhancedInputComponent->BindAction(SprintAction.Get(), ETriggerEvent::Completed, this, &AMyFirstHorrorGameCharacter::ReleaseSprint);
+			EnhancedInputComponent->BindAction(SprintAction.Get(), ETriggerEvent::Canceled, this, &AMyFirstHorrorGameCharacter::ReleaseSprint);
+		}
+
 		if (IsValid(FlashlightAction))
 		{
 			EnhancedInputComponent->BindAction(FlashlightAction.Get(), ETriggerEvent::Started, this, &AMyFirstHorrorGameCharacter::ToggleFlashlight);
@@ -179,6 +234,7 @@ void AMyFirstHorrorGameCharacter::ToggleInventory()
 	}
 
 	InventoryMenu = Menu;
+	ResetWalkSpeed();
 	InventoryMenuController = Player;
 	bPreviousCursorVisible = Player->bShowMouseCursor;
 	Player->SetIgnoreMoveInput(true);
@@ -215,6 +271,7 @@ void AMyFirstHorrorGameCharacter::PawnClientRestart()
 {
 	CloseInventory();
 	Super::PawnClientRestart();
+	ResetWalkSpeed();
 	StopInteractionHUD();
 	APlayerController* Player = Cast<APlayerController>(GetController());
 	if (!IsValid(Player) || !Player->IsLocalPlayerController() || !InteractionHUDClass)
@@ -254,6 +311,7 @@ void AMyFirstHorrorGameCharacter::UnPossessed()
 {
 	CloseInventory();
 	StopInteractionHUD();
+	ResetWalkSpeed();
 	Super::UnPossessed();
 }
 
@@ -261,6 +319,7 @@ void AMyFirstHorrorGameCharacter::EndPlay(const EEndPlayReason::Type EndPlayReas
 {
 	CloseInventory();
 	StopInteractionHUD();
+	GetWorldTimerManager().ClearTimer(WalkTransitionTimer);
 	Super::EndPlay(EndPlayReason);
 }
 

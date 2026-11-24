@@ -39,6 +39,14 @@ class AMyFirstHorrorGameCharacter : public ACharacter
 	TObjectPtr<USpotLightComponent> Flashlight;
 	
 private:
+	void StartSprint();
+	void ReleaseSprint();
+	void UpdateWalkTransition();
+	void ResetWalkSpeed();
+	FTimerHandle WalkTransitionTimer;
+	double SprintReleaseTime = 0.0;
+	float ReleaseStartSpeed = 0.0f;
+
 	void ToggleInventory();
 	void CloseInventory();
 
@@ -57,6 +65,20 @@ private:
 	TObjectPtr<UInteractionHUD> InteractionHUD;
 
 protected:
+	virtual void BeginPlay() override;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Movement|Sprint", meta=(ClampMin="0", Units="cm/s"))
+	float WalkSpeed = 220.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Movement|Sprint", meta=(ClampMin="0", Units="cm/s"))
+	float SprintSpeed = 500.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Movement|Sprint", meta=(ClampMin="0", Units="s"))
+	float SprintReleaseDuration = 0.2f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Input")
+	TObjectPtr<UInputAction> SprintAction;
+
 	virtual void PawnClientRestart() override;
 	virtual void UnPossessed() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
