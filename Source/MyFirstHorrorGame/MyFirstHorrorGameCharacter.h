@@ -12,6 +12,7 @@ class UCameraComponent;
 class USpotLightComponent;
 class UInputAction;
 class UInteractionHUD;
+class UHorrorInventoryMenu;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -38,6 +39,15 @@ class AMyFirstHorrorGameCharacter : public ACharacter
 	TObjectPtr<USpotLightComponent> Flashlight;
 	
 private:
+	void ToggleInventory();
+	void CloseInventory();
+
+	UPROPERTY(Transient)
+	TObjectPtr<UHorrorInventoryMenu> InventoryMenu;
+
+	TWeakObjectPtr<APlayerController> InventoryMenuController;
+	bool bPreviousCursorVisible = false;
+
 	AActor* FindInteractionTarget() const;
 	void RefreshInteractionHUD();
 	void StopInteractionHUD();
@@ -53,6 +63,12 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category="Interaction")
 	TSubclassOf<UInteractionHUD> InteractionHUDClass;
+
+	UPROPERTY(EditDefaultsOnly, Category="Inventory")
+	TSubclassOf<UHorrorInventoryMenu> InventoryMenuClass;
+
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	TObjectPtr<UInputAction> ToggleInventoryAction;
 
 	/** Assign a digital action in the playable character Blueprint. */
 	UPROPERTY(EditDefaultsOnly, Category="Input")

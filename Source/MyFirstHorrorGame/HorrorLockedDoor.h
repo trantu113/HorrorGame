@@ -25,6 +25,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Door")
 	FName RequiredKeyId = NAME_None;
 
+	/** Let the Blueprint timeline rotate the hinge on open and close events. */
+	UPROPERTY(EditDefaultsOnly, Category="Door")
+	bool bAnimateHingeInBlueprint = false;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	TObjectPtr<USceneComponent> Hinge;
 

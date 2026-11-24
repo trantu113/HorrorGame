@@ -5,6 +5,8 @@
 #include "Engine/World.h"
 #include "HorrorInteractable.h"
 #include "InteractionHUD.h"
+#include "Inventory/HorrorInventoryComponent.h"
+#include "Inventory/HorrorInventoryMenu.h"
 #include "TimerManager.h"
 #include "GameFramework/PlayerController.h"
 #include "Camera/CameraComponent.h"
@@ -81,9 +83,15 @@ void AMyFirstHorrorGameCharacter::SetupPlayerInputComponent(UInputComponent* Pla
 			EnhancedInputComponent->BindAction(InteractAction.Get(), ETriggerEvent::Started, this, &AMyFirstHorrorGameCharacter::TryInteract);
 		}
 
+		if (IsValid(ToggleInventoryAction))
+		{
+			EnhancedInputComponent->BindAction(ToggleInventoryAction.Get(), ETriggerEvent::Started, this,
+				&AMyFirstHorrorGameCharacter::ToggleInventory);
+		}
+
 		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AMyFirstHorrorGameCharacter::DoJumpStart);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &AMyFirstHorrorGameCharacter::DoJumpEnd);
 
 		// Moving
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMyFirstHorrorGameCharacter::Move);
@@ -100,7 +108,7 @@ void AMyFirstHorrorGameCharacter::SetupPlayerInputComponent(UInputComponent* Pla
 
 void AMyFirstHorrorGameCharacter::ToggleFlashlight()
 {
-	if (IsValid(Flashlight))
+	if (!InventoryMenu && IsValid(Flashlight))
 	{
 		Flashlight->SetVisibility(!Flashlight->IsVisible());
 	}
@@ -132,6 +140,11 @@ AActor* AMyFirstHorrorGameCharacter::FindInteractionTarget() const
 
 void AMyFirstHorrorGameCharacter::TryInteract()
 {
+	if (InventoryMenu)
+	{
+		return;
+	}
+
 	if (AActor* Target = FindInteractionTarget())
 	{
 		IHorrorInteractable::Execute_Interact(Target, this);
@@ -139,8 +152,68 @@ void AMyFirstHorrorGameCharacter::TryInteract()
 	RefreshInteractionHUD();
 }
 
+void AMyFirstHorrorGameCharacter::ToggleInventory()
+{
+	if (InventoryMenu)
+	{
+		CloseInventory();
+		return;
+	}
+
+	APlayerController* Player = Cast<APlayerController>(GetController());
+	UHorrorInventoryComponent* Inventory = FindComponentByClass<UHorrorInventoryComponent>();
+	if (!IsValid(Player) || !Player->IsLocalPlayerController() || !InventoryMenuClass || !IsValid(Inventory))
+	{
+		return;
+	}
+
+	UHorrorInventoryMenu* Menu = CreateWidget<UHorrorInventoryMenu>(Player, InventoryMenuClass);
+	if (!IsValid(Menu) || !Menu->AddToPlayerScreen(10))
+	{
+		return;
+	}
+	if (!Menu->SetInventory(Inventory))
+	{
+		Menu->RemoveFromParent();
+		return;
+	}
+
+	InventoryMenu = Menu;
+	InventoryMenuController = Player;
+	bPreviousCursorVisible = Player->bShowMouseCursor;
+	Player->SetIgnoreMoveInput(true);
+	Player->SetIgnoreLookInput(true);
+	GetCharacterMovement()->StopMovementImmediately();
+	StopJumping();
+
+	FInputModeGameAndUI Mode;
+	Mode.SetHideCursorDuringCapture(false);
+	Mode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+	Player->SetInputMode(Mode);
+	Player->bShowMouseCursor = true;
+}
+
+void AMyFirstHorrorGameCharacter::CloseInventory()
+{
+	if (IsValid(InventoryMenu))
+	{
+		InventoryMenu->RemoveFromParent();
+	}
+	InventoryMenu = nullptr;
+
+	if (APlayerController* Player = InventoryMenuController.Get())
+	{
+		Player->SetIgnoreMoveInput(false);
+		Player->SetIgnoreLookInput(false);
+		Player->SetInputMode(FInputModeGameOnly());
+		Player->bShowMouseCursor = bPreviousCursorVisible;
+	}
+	InventoryMenuController.Reset();
+}
+
 void AMyFirstHorrorGameCharacter::PawnClientRestart()
 {
+	CloseInventory();
 	Super::PawnClientRestart();
 	StopInteractionHUD();
 	APlayerController* Player = Cast<APlayerController>(GetController());
@@ -179,12 +252,14 @@ void AMyFirstHorrorGameCharacter::StopInteractionHUD()
 
 void AMyFirstHorrorGameCharacter::UnPossessed()
 {
+	CloseInventory();
 	StopInteractionHUD();
 	Super::UnPossessed();
 }
 
 void AMyFirstHorrorGameCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	CloseInventory();
 	StopInteractionHUD();
 	Super::EndPlay(EndPlayReason);
 }
@@ -239,8 +314,10 @@ void AMyFirstHorrorGameCharacter::DoLook(float Yaw, float Pitch)
 
 void AMyFirstHorrorGameCharacter::DoJumpStart()
 {
-	// signal the character to jump
-	Jump();
+	if (!InventoryMenu)
+	{
+		Jump();
+	}
 }
 
 void AMyFirstHorrorGameCharacter::DoJumpEnd()

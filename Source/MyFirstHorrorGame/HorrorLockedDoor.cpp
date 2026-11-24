@@ -35,14 +35,20 @@ void AHorrorLockedDoor::Interact_Implementation(AActor* Interactor)
 	}
 
 	bIsOpen = true;
-	ClosedHingeRotation = Hinge->GetRelativeRotation();
-	Hinge->AddLocalRotation(FRotator(0.0f, 90.0f, 0.0f));
+	if (!bAnimateHingeInBlueprint)
+	{
+		ClosedHingeRotation = Hinge->GetRelativeRotation();
+		Hinge->AddLocalRotation(FRotator(0.0f, 90.0f, 0.0f));
+	}
 	OnDoorOpened();
 }
 
 void AHorrorLockedDoor::CloseDoor()
 {
 	bIsOpen = false;
-	Hinge->SetRelativeRotation(ClosedHingeRotation);
+	if (!bAnimateHingeInBlueprint)
+	{
+		Hinge->SetRelativeRotation(ClosedHingeRotation);
+	}
 	OnDoorClosed();
 }
