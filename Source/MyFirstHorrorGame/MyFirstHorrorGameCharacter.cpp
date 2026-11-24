@@ -2,6 +2,11 @@
 
 #include "MyFirstHorrorGameCharacter.h"
 #include "Engine/LocalPlayer.h"
+#include "Engine/World.h"
+#include "HorrorInteractable.h"
+#include "InteractionHUD.h"
+#include "TimerManager.h"
+#include "GameFramework/PlayerController.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SpotLightComponent.h"
@@ -50,10 +55,11 @@ AMyFirstHorrorGameCharacter::AMyFirstHorrorGameCharacter()
 
 	Flashlight = CreateDefaultSubobject<USpotLightComponent>(TEXT("Flashlight"));
 	Flashlight->SetupAttachment(FollowCamera);
-	Flashlight->SetIntensity(4000.0f);
-	Flashlight->SetAttenuationRadius(1600.0f);
-	Flashlight->SetInnerConeAngle(15.0f);
-	Flashlight->SetOuterConeAngle(30.0f);
+	Flashlight->SetIntensityUnits(ELightUnits::Candelas);
+	Flashlight->SetIntensity(900.0f);
+	Flashlight->SetAttenuationRadius(800.0f);
+	Flashlight->SetInnerConeAngle(9.0f);
+	Flashlight->SetOuterConeAngle(18.0f);
 	Flashlight->SetVisibility(false);
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
@@ -68,6 +74,11 @@ void AMyFirstHorrorGameCharacter::SetupPlayerInputComponent(UInputComponent* Pla
 		if (IsValid(FlashlightAction))
 		{
 			EnhancedInputComponent->BindAction(FlashlightAction.Get(), ETriggerEvent::Started, this, &AMyFirstHorrorGameCharacter::ToggleFlashlight);
+		}
+
+		if (IsValid(InteractAction))
+		{
+			EnhancedInputComponent->BindAction(InteractAction.Get(), ETriggerEvent::Started, this, &AMyFirstHorrorGameCharacter::TryInteract);
 		}
 
 		// Jumping
@@ -93,6 +104,89 @@ void AMyFirstHorrorGameCharacter::ToggleFlashlight()
 	{
 		Flashlight->SetVisibility(!Flashlight->IsVisible());
 	}
+}
+
+AActor* AMyFirstHorrorGameCharacter::FindInteractionTarget() const
+{
+	UWorld* World = GetWorld();
+	if (!IsValid(World) || !IsValid(FollowCamera))
+	{
+		return nullptr;
+	}
+
+	const FVector Origin = GetActorLocation();
+	const FVector Start = FollowCamera->GetComponentLocation();
+	const double RayLength = FVector::Distance(Origin, Start) + InteractionReach;
+	const FVector End = Start + FollowCamera->GetForwardVector() * RayLength;
+	FCollisionQueryParams Query(SCENE_QUERY_STAT(HorrorInteraction), false, this);
+	FHitResult Hit;
+	if (!World->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Query)
+		|| FVector::Distance(Origin, Hit.ImpactPoint) > InteractionReach)
+	{
+		return nullptr;
+	}
+
+	AActor* Target = Hit.GetActor();
+	return IsValid(Target) && Target->Implements<UHorrorInteractable>() ? Target : nullptr;
+}
+
+void AMyFirstHorrorGameCharacter::TryInteract()
+{
+	if (AActor* Target = FindInteractionTarget())
+	{
+		IHorrorInteractable::Execute_Interact(Target, this);
+	}
+	RefreshInteractionHUD();
+}
+
+void AMyFirstHorrorGameCharacter::PawnClientRestart()
+{
+	Super::PawnClientRestart();
+	StopInteractionHUD();
+	APlayerController* Player = Cast<APlayerController>(GetController());
+	if (!IsValid(Player) || !Player->IsLocalPlayerController() || !InteractionHUDClass)
+	{
+		return;
+	}
+
+	InteractionHUD = CreateWidget<UInteractionHUD>(Player, InteractionHUDClass);
+	if (IsValid(InteractionHUD))
+	{
+		InteractionHUD->AddToPlayerScreen();
+		RefreshInteractionHUD();
+		GetWorldTimerManager().SetTimer(InteractionTimer, this,
+			&AMyFirstHorrorGameCharacter::RefreshInteractionHUD, 0.1f, true);
+	}
+}
+
+void AMyFirstHorrorGameCharacter::RefreshInteractionHUD()
+{
+	if (IsValid(InteractionHUD))
+	{
+		InteractionHUD->SetInteractionAvailable(FindInteractionTarget() != nullptr);
+	}
+}
+
+void AMyFirstHorrorGameCharacter::StopInteractionHUD()
+{
+	GetWorldTimerManager().ClearTimer(InteractionTimer);
+	if (IsValid(InteractionHUD))
+	{
+		InteractionHUD->RemoveFromParent();
+	}
+	InteractionHUD = nullptr;
+}
+
+void AMyFirstHorrorGameCharacter::UnPossessed()
+{
+	StopInteractionHUD();
+	Super::UnPossessed();
+}
+
+void AMyFirstHorrorGameCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	StopInteractionHUD();
+	Super::EndPlay(EndPlayReason);
 }
 
 void AMyFirstHorrorGameCharacter::Move(const FInputActionValue& Value)

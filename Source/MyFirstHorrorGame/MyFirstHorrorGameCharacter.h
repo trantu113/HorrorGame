@@ -11,6 +11,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class USpotLightComponent;
 class UInputAction;
+class UInteractionHUD;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -36,11 +37,34 @@ class AMyFirstHorrorGameCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<USpotLightComponent> Flashlight;
 	
+private:
+	AActor* FindInteractionTarget() const;
+	void RefreshInteractionHUD();
+	void StopInteractionHUD();
+	FTimerHandle InteractionTimer;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInteractionHUD> InteractionHUD;
+
 protected:
+	virtual void PawnClientRestart() override;
+	virtual void UnPossessed() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
+	UPROPERTY(EditDefaultsOnly, Category="Interaction")
+	TSubclassOf<UInteractionHUD> InteractionHUDClass;
 
 	/** Assign a digital action in the playable character Blueprint. */
 	UPROPERTY(EditDefaultsOnly, Category="Input")
 	TObjectPtr<UInputAction> FlashlightAction;
+
+	/** Digital action used to interact once per press. */
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	TObjectPtr<UInputAction> InteractAction;
+
+	/** Maximum distance from the character to the point hit by the trace, in centimeters. */
+	UPROPERTY(EditDefaultsOnly, Category="Interaction", meta=(ClampMin="0.0"))
+	float InteractionReach = 200.0f;
 
 	/** Jump Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
@@ -75,6 +99,9 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
+
+	/** Find and interact with the first reachable object in the center of the view. */
+	void TryInteract();
 
 public:
 
