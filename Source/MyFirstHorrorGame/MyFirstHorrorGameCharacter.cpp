@@ -4,6 +4,7 @@
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SpotLightComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
@@ -38,13 +39,22 @@ AMyFirstHorrorGameCharacter::AMyFirstHorrorGameCharacter()
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->TargetArmLength = 400.0f;
+	CameraBoom->TargetArmLength = 260.0f;
+	CameraBoom->SocketOffset = FVector(0.0f, 55.0f, 55.0f);
 	CameraBoom->bUsePawnControlRotation = true;
 
 	// Create a follow camera
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
+
+	Flashlight = CreateDefaultSubobject<USpotLightComponent>(TEXT("Flashlight"));
+	Flashlight->SetupAttachment(FollowCamera);
+	Flashlight->SetIntensity(4000.0f);
+	Flashlight->SetAttenuationRadius(1600.0f);
+	Flashlight->SetInnerConeAngle(15.0f);
+	Flashlight->SetOuterConeAngle(30.0f);
+	Flashlight->SetVisibility(false);
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -55,6 +65,11 @@ void AMyFirstHorrorGameCharacter::SetupPlayerInputComponent(UInputComponent* Pla
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
 		
+		if (IsValid(FlashlightAction))
+		{
+			EnhancedInputComponent->BindAction(FlashlightAction.Get(), ETriggerEvent::Started, this, &AMyFirstHorrorGameCharacter::ToggleFlashlight);
+		}
+
 		// Jumping
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
@@ -69,6 +84,14 @@ void AMyFirstHorrorGameCharacter::SetupPlayerInputComponent(UInputComponent* Pla
 	else
 	{
 		UE_LOG(LogMyFirstHorrorGame, Error, TEXT("'%s' Failed to find an Enhanced Input component! This template is built to use the Enhanced Input system. If you intend to use the legacy system, then you will need to update this C++ file."), *GetNameSafe(this));
+	}
+}
+
+void AMyFirstHorrorGameCharacter::ToggleFlashlight()
+{
+	if (IsValid(Flashlight))
+	{
+		Flashlight->SetVisibility(!Flashlight->IsVisible());
 	}
 }
 

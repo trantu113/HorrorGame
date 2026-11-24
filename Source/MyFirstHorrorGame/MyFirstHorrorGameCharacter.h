@@ -9,6 +9,7 @@
 
 class USpringArmComponent;
 class UCameraComponent;
+class USpotLightComponent;
 class UInputAction;
 struct FInputActionValue;
 
@@ -30,8 +31,16 @@ class AMyFirstHorrorGameCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
+
+	/** A cone of light pointing along the player's view. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<USpotLightComponent> Flashlight;
 	
 protected:
+
+	/** Assign a digital action in the playable character Blueprint. */
+	UPROPERTY(EditDefaultsOnly, Category="Input")
+	TObjectPtr<UInputAction> FlashlightAction;
 
 	/** Jump Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
@@ -68,6 +77,10 @@ protected:
 	void Look(const FInputActionValue& Value);
 
 public:
+
+	/** Switch the light once per press, including presses from a UI button. */
+	UFUNCTION(BlueprintCallable, Category="Flashlight")
+	void ToggleFlashlight();
 
 	/** Handles move inputs from either controls or UI interfaces */
 	UFUNCTION(BlueprintCallable, Category="Input")
