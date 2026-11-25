@@ -19,6 +19,9 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "MyFirstHorrorGame.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/Soundbase.h"
+
 
 AMyFirstHorrorGameCharacter::AMyFirstHorrorGameCharacter()
 {
@@ -166,6 +169,10 @@ void AMyFirstHorrorGameCharacter::ToggleFlashlight()
 	if (!InventoryMenu && IsValid(Flashlight))
 	{
 		Flashlight->SetVisibility(!Flashlight->IsVisible());
+		if (IsValid(FlashlightToggleSound))
+		{
+			UGameplayStatics::PlaySound2D(this, FlashlightToggleSound.Get());
+		}
 	}
 }
 

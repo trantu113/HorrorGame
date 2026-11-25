@@ -10,6 +10,7 @@
 class USpringArmComponent;
 class UCameraComponent;
 class USpotLightComponent;
+class USoundBase;
 class UInputAction;
 class UInteractionHUD;
 class UHorrorInventoryMenu;
@@ -63,6 +64,7 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UInteractionHUD> InteractionHUD;
+
 
 protected:
 	virtual void BeginPlay() override;
@@ -119,6 +121,9 @@ protected:
 	/** Mouse Look Input Action */
 	UPROPERTY(EditAnywhere, Category="Input")
 	UInputAction* MouseLookAction;
+	
+	UPROPERTY(EditDefaultsOnly, Category="Flashlight|Audio")
+	TObjectPtr<USoundBase> FlashlightToggleSound;
 
 public:
 
