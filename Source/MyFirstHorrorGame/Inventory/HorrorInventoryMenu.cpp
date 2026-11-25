@@ -84,3 +84,9 @@ void UHorrorInventoryMenu::ClearItem(const UHorrorInventorySlotWidget* Slot)
 		ShowItem(nullptr, nullptr);
 	}
 }
+
+bool UHorrorInventoryMenu::UseSlot(UHorrorInventorySlotWidget* Slot)
+{
+	UHorrorInventoryComponent* Source = Inventory.Get();
+	return IsValid(Source) && IsValid(Slot) && Source->UseItem(SlotGrid->GetChildIndex(Slot));
+}

@@ -52,3 +52,12 @@ void UHorrorInventorySlotWidget::NativeOnMouseLeave(const FPointerEvent& Event)
 		InventoryMenu->ClearItem(this);
 	}
 }
+
+FReply UHorrorInventorySlotWidget::NativeOnMouseButtonDoubleClick(const FGeometry& Geometry, const FPointerEvent& Event)
+{
+	if (Event.GetEffectingButton() == EKeys::LeftMouseButton && Menu.IsValid() && Menu->UseSlot(this))
+	{
+		return FReply::Handled();
+	}
+	return Super::NativeOnMouseButtonDoubleClick(Geometry, Event);
+}

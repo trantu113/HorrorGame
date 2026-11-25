@@ -19,6 +19,7 @@ public:
 	void SetSlot(UHorrorInventoryMenu* InMenu, UHorrorItemDefinition* InItem, int32 Quantity);
 
 protected:
+	virtual FReply NativeOnMouseButtonDoubleClick(const FGeometry& Geometry, const FPointerEvent& Event) override;
 	virtual void NativeOnMouseEnter(const FGeometry& Geometry, const FPointerEvent& Event) override;
 	virtual void NativeOnMouseLeave(const FPointerEvent& Event) override;
 

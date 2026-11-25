@@ -19,6 +19,7 @@ class MYFIRSTHORRORGAME_API UHorrorInventoryMenu : public UUserWidget
 public:
 	bool SetInventory(UHorrorInventoryComponent* InInventory);
 	void ShowItem(UHorrorInventorySlotWidget* Slot, const UHorrorItemDefinition* Item);
+	bool UseSlot(UHorrorInventorySlotWidget* Slot);
 	void ClearItem(const UHorrorInventorySlotWidget* Slot);
 
 protected:

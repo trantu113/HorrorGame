@@ -20,11 +20,13 @@
 #include "InputActionValue.h"
 #include "MyFirstHorrorGame.h"
 #include "Kismet/GameplayStatics.h"
-#include "Sound/Soundbase.h"
+#include "Sound/SoundBase.h"
+#include "HorrorHealthComponent.h"
 
 
 AMyFirstHorrorGameCharacter::AMyFirstHorrorGameCharacter()
 {
+	Health = CreateDefaultSubobject<UHorrorHealthComponent>(TEXT("Health"));
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 		
@@ -74,6 +76,9 @@ AMyFirstHorrorGameCharacter::AMyFirstHorrorGameCharacter()
 void AMyFirstHorrorGameCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	Health->OnHealthChanged.AddDynamic(this, &AMyFirstHorrorGameCharacter::UpdateInjuryFeedback);
+	Health->OnPlayerDied.AddDynamic(this, &AMyFirstHorrorGameCharacter::HandlePlayerDeath);
+	InjuryStrength = 1.0f - Health->GetHealthRatio();
 	ResetWalkSpeed();
 }
 
@@ -390,4 +395,39 @@ void AMyFirstHorrorGameCharacter::DoJumpEnd()
 {
 	// signal the character to stop jumping
 	StopJumping();
+}
+
+void AMyFirstHorrorGameCharacter::UpdateInjuryFeedback(float Current, float Maximum, float Ratio)
+{
+	InjuryStrength = 1.0f - Ratio;
+}
+
+void AMyFirstHorrorGameCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
+{
+	Super::CalcCamera(DeltaTime, OutResult);
+	if (InjuryStrength <= 0.0f)
+	{
+		return;
+	}
+
+	// OutResult is this frame's copy of the normal camera settings.
+	FPostProcessSettings& Settings = OutResult.PostProcessSettings;
+	Settings.bOverride_ColorSaturation = true;
+	Settings.ColorSaturation.W *= 1.0f - InjuryStrength;
+	Settings.bOverride_VignetteIntensity = true;
+	Settings.VignetteIntensity = FMath::Lerp(Settings.VignetteIntensity,
+		FMath::Max(Settings.VignetteIntensity, CriticalVignette), InjuryStrength);
+	const float Sway = FMath::Max(0.0f, InjuryStrength * 2.0f - 1.0f);
+	OutResult.Rotation.Roll += InjurySwayDegrees * Sway * FMath::Sin(GetWorld()->GetTimeSeconds() * 2.0f);
+}
+
+void AMyFirstHorrorGameCharacter::HandlePlayerDeath()
+{
+	CloseInventory();
+	StopInteractionHUD();
+	GetCharacterMovement()->DisableMovement();
+	if (APlayerController* Player = Cast<APlayerController>(GetController()))
+	{
+		DisableInput(Player);
+	}
 }

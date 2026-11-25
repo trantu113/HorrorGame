@@ -34,6 +34,9 @@ public:
 	UFUNCTION(BlueprintPure, Category="Inventory")
 	int64 CountItem(UHorrorItemDefinition* Item) const;
 
+	UFUNCTION(BlueprintCallable, Category="Inventory")
+	bool UseItem(int32 SlotIndex);
+
 	int32 GetSlotCapacity() const { return FMath::Clamp(SlotCapacity, 1, 64); }
 	const TArray<FHorrorInventorySlot>& GetSlots() const { return Slots; }
 

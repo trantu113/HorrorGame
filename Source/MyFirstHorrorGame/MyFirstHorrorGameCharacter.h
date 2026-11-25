@@ -7,6 +7,7 @@
 #include "Logging/LogMacros.h"
 #include "MyFirstHorrorGameCharacter.generated.h"
 
+class UHorrorHealthComponent;
 class USpringArmComponent;
 class UCameraComponent;
 class USpotLightComponent;
@@ -67,6 +68,24 @@ private:
 
 
 protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Health")
+	TObjectPtr<UHorrorHealthComponent> Health;
+
+	UPROPERTY(EditDefaultsOnly, Category="Health|Feedback", meta=(ClampMin="0", ClampMax="2"))
+	float InjurySwayDegrees = 0.55f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Health|Feedback", meta=(ClampMin="0", ClampMax="1"))
+	float CriticalVignette = 0.8f;
+
+	float InjuryStrength = 0.0f;
+
+	UFUNCTION()
+	void UpdateInjuryFeedback(float Current, float Maximum, float Ratio);
+
+	UFUNCTION()
+	void HandlePlayerDeath();
+
+	virtual void CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult) override;
 	virtual void BeginPlay() override;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Movement|Sprint", meta=(ClampMin="0", Units="cm/s"))

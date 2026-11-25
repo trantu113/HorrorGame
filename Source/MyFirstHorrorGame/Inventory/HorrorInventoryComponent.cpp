@@ -1,4 +1,6 @@
 #include "HorrorInventoryComponent.h"
+#include "HorrorHealthComponent.h"
+#include "GameFramework/Actor.h"
 
 bool UHorrorInventoryComponent::TryAddItem(UHorrorItemDefinition* Item, int32 Quantity)
 {
@@ -80,6 +82,34 @@ bool UHorrorInventoryComponent::TryRemoveItem(UHorrorItemDefinition* Item, int32
 			}
 		}
 	}
+	OnInventoryChanged.Broadcast();
+	return true;
+}
+
+bool UHorrorInventoryComponent::UseItem(int32 SlotIndex)
+{
+	if (!Slots.IsValidIndex(SlotIndex) || !IsValid(GetOwner()))
+	{
+		return false;
+	}
+	FHorrorInventorySlot& Slot = Slots[SlotIndex];
+	if (!IsValid(Slot.Item) || Slot.Quantity <= 0)
+	{
+		return false;
+	}
+	const float Amount = Slot.Item->HealAmount;
+	UHorrorHealthComponent* Health = GetOwner()->FindComponentByClass<UHorrorHealthComponent>();
+	if (!IsValid(Health) || !Health->CanHeal(Amount))
+	{
+		return false;
+	}
+
+	// Commit the stack before healing notifies any Blueprint listeners.
+	if (--Slot.Quantity == 0)
+	{
+		Slots.RemoveAt(SlotIndex);
+	}
+	Health->Heal(Amount);
 	OnInventoryChanged.Broadcast();
 	return true;
 }

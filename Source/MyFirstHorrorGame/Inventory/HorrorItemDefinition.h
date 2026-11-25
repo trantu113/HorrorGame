@@ -15,6 +15,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Item")
 	FText DisplayName;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Item", meta=(ClampMin="0.0"))
+	float HealAmount = 0.0f;
+
 	/** Square image shown in the inventory. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Item")
 	TObjectPtr<UTexture2D> Icon;
