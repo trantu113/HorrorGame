@@ -1,5 +1,7 @@
 #include "HorrorInventoryComponent.h"
 #include "HorrorHealthComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 #include "GameFramework/Actor.h"
 
 bool UHorrorInventoryComponent::TryAddItem(UHorrorItemDefinition* Item, int32 Quantity)
@@ -104,12 +106,17 @@ bool UHorrorInventoryComponent::UseItem(int32 SlotIndex)
 		return false;
 	}
 
+	USoundBase* UseSound = Slot.Item->UseSound.Get();
 	// Commit the stack before healing notifies any Blueprint listeners.
 	if (--Slot.Quantity == 0)
 	{
 		Slots.RemoveAt(SlotIndex);
 	}
 	Health->Heal(Amount);
+	if (IsValid(UseSound))
+	{
+		UGameplayStatics::PlaySound2D(this, UseSound);
+	}
 	OnInventoryChanged.Broadcast();
 	return true;
 }

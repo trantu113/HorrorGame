@@ -5,6 +5,7 @@
 #include "HorrorItemDefinition.generated.h"
 
 class UTexture2D;
+class USoundBase;
 
 UCLASS(BlueprintType)
 class MYFIRSTHORRORGAME_API UHorrorItemDefinition : public UDataAsset
@@ -17,6 +18,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Item", meta=(ClampMin="0.0"))
 	float HealAmount = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Item")
+	TObjectPtr<USoundBase> UseSound;
 
 	/** Square image shown in the inventory. */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Item")

@@ -8,6 +8,9 @@
 #include "MyFirstHorrorGameCharacter.generated.h"
 
 class UHorrorHealthComponent;
+class UHorrorGameOverWidget;
+class UAudioComponent;
+class UAnimMontage;
 class USpringArmComponent;
 class UCameraComponent;
 class USpotLightComponent;
@@ -72,10 +75,46 @@ protected:
 	TObjectPtr<UHorrorHealthComponent> Health;
 
 	UPROPERTY(EditDefaultsOnly, Category="Health|Feedback", meta=(ClampMin="0", ClampMax="2"))
-	float InjurySwayDegrees = 0.55f;
+	float InjurySwayDegrees = 1.8f;
 
 	UPROPERTY(EditDefaultsOnly, Category="Health|Feedback", meta=(ClampMin="0", ClampMax="1"))
-	float CriticalVignette = 0.8f;
+	float CriticalVignette = 0.95f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Health|Feedback", meta=(ClampMin="0", ClampMax="3"))
+	float DesaturationStrength = 1.35f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Health|Feedback")
+	FLinearColor CriticalTint = FLinearColor(0.88f, 1.12f, 1.04f);
+
+	UPROPERTY(EditDefaultsOnly, Category="Health|Feedback", meta=(ClampMin="0", ClampMax="1"))
+	float InjuryMotionBlur = 0.35f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Health|Audio")
+	TObjectPtr<UAudioComponent> LowHealthBreathingAudio;
+
+	UPROPERTY(EditDefaultsOnly, Category="Health|Audio", meta=(ClampMin="0.01", ClampMax="1"))
+	float BreathingThreshold = 0.45f;
+
+	UPROPERTY(EditDefaultsOnly, Category="Health|Death")
+	TObjectPtr<USoundBase> DeathSound;
+
+	UPROPERTY(EditDefaultsOnly, Category="Health|Audio")
+	TObjectPtr<USoundBase> HurtSound;
+
+	UPROPERTY(EditDefaultsOnly, Category="Health|Death")
+	TObjectPtr<UAnimMontage> DeathMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category="Health|Death")
+	TSubclassOf<UHorrorGameOverWidget> GameOverClass;
+
+	UPROPERTY(EditDefaultsOnly, Category="Health|Death", meta=(ClampMin="0"))
+	float GameOverDelay = 2.5f;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UHorrorGameOverWidget> GameOverWidget;
+
+	FTimerHandle GameOverTimer;
+	void ShowGameOver();
 
 	float InjuryStrength = 0.0f;
 

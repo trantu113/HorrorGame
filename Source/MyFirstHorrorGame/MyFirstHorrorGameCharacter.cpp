@@ -22,11 +22,17 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
 #include "HorrorHealthComponent.h"
+#include "HorrorGameOverWidget.h"
+#include "Components/AudioComponent.h"
+#include "Animation/AnimMontage.h"
 
 
 AMyFirstHorrorGameCharacter::AMyFirstHorrorGameCharacter()
 {
 	Health = CreateDefaultSubobject<UHorrorHealthComponent>(TEXT("Health"));
+	LowHealthBreathingAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("LowHealthBreathingAudio"));
+	LowHealthBreathingAudio->SetupAttachment(RootComponent);
+	LowHealthBreathingAudio->bAutoActivate = false;
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 		
@@ -332,6 +338,12 @@ void AMyFirstHorrorGameCharacter::EndPlay(const EEndPlayReason::Type EndPlayReas
 	CloseInventory();
 	StopInteractionHUD();
 	GetWorldTimerManager().ClearTimer(WalkTransitionTimer);
+	GetWorldTimerManager().ClearTimer(GameOverTimer);
+	LowHealthBreathingAudio->Stop();
+	if (IsValid(GameOverWidget))
+	{
+		GameOverWidget->RemoveFromParent();
+	}
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -399,7 +411,36 @@ void AMyFirstHorrorGameCharacter::DoJumpEnd()
 
 void AMyFirstHorrorGameCharacter::UpdateInjuryFeedback(float Current, float Maximum, float Ratio)
 {
-	InjuryStrength = 1.0f - Ratio;
+	const float NewInjuryStrength = 1.0f - Ratio;
+	if (Current > 0.0f && NewInjuryStrength > InjuryStrength && IsValid(HurtSound))
+	{
+		UGameplayStatics::PlaySound2D(this, HurtSound);
+	}
+	InjuryStrength = NewInjuryStrength;
+	if (!IsLocallyControlled() || !LowHealthBreathingAudio->Sound)
+	{
+		return;
+	}
+	if (Ratio <= 0.0f || Ratio > BreathingThreshold)
+	{
+		if (LowHealthBreathingAudio->IsPlaying())
+		{
+			LowHealthBreathingAudio->FadeOut(0.35f, 0.0f);
+		}
+		return;
+	}
+
+	const float Urgency = 1.0f - Ratio / BreathingThreshold;
+	const float Volume = FMath::Lerp(0.35f, 0.9f, Urgency);
+	LowHealthBreathingAudio->SetPitchMultiplier(1.0f + 0.15f * Urgency);
+	if (!LowHealthBreathingAudio->IsPlaying() || LowHealthBreathingAudio->GetPlayState() == EAudioComponentPlayState::FadingOut)
+	{
+		LowHealthBreathingAudio->FadeIn(0.45f, Volume);
+	}
+	else
+	{
+		LowHealthBreathingAudio->AdjustVolume(0.3f, Volume);
+	}
 }
 
 void AMyFirstHorrorGameCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
@@ -413,12 +454,26 @@ void AMyFirstHorrorGameCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& 
 	// OutResult is this frame's copy of the normal camera settings.
 	FPostProcessSettings& Settings = OutResult.PostProcessSettings;
 	Settings.bOverride_ColorSaturation = true;
-	Settings.ColorSaturation.W *= 1.0f - InjuryStrength;
+	Settings.ColorSaturation.W *= 1.0f - FMath::Clamp(InjuryStrength * DesaturationStrength, 0.0f, 1.0f);
+	Settings.bOverride_ColorGain = true;
+	Settings.ColorGain.X *= FMath::Lerp(1.0f, CriticalTint.R, InjuryStrength);
+	Settings.ColorGain.Y *= FMath::Lerp(1.0f, CriticalTint.G, InjuryStrength);
+	Settings.ColorGain.Z *= FMath::Lerp(1.0f, CriticalTint.B, InjuryStrength);
+	if (InjuryMotionBlur > 0.0f)
+	{
+		Settings.bOverride_MotionBlurAmount = true;
+		Settings.MotionBlurAmount = FMath::Clamp(Settings.MotionBlurAmount + InjuryMotionBlur * InjuryStrength, 0.0f, 1.0f);
+	}
 	Settings.bOverride_VignetteIntensity = true;
 	Settings.VignetteIntensity = FMath::Lerp(Settings.VignetteIntensity,
 		FMath::Max(Settings.VignetteIntensity, CriticalVignette), InjuryStrength);
 	const float Sway = FMath::Max(0.0f, InjuryStrength * 2.0f - 1.0f);
-	OutResult.Rotation.Roll += InjurySwayDegrees * Sway * FMath::Sin(GetWorld()->GetTimeSeconds() * 2.0f);
+	const float Time = GetWorld()->GetTimeSeconds();
+	if (Health->GetHealthRatio() > 0.0f)
+	{
+		OutResult.Rotation.Roll += InjurySwayDegrees * Sway * FMath::Sin(Time * 2.3f);
+		OutResult.Rotation.Pitch += InjurySwayDegrees * 0.4f * Sway * FMath::Sin(Time * 3.1f);
+	}
 }
 
 void AMyFirstHorrorGameCharacter::HandlePlayerDeath()
@@ -429,5 +484,39 @@ void AMyFirstHorrorGameCharacter::HandlePlayerDeath()
 	if (APlayerController* Player = Cast<APlayerController>(GetController()))
 	{
 		DisableInput(Player);
+	}
+	if (IsValid(DeathMontage))
+	{
+		PlayAnimMontage(DeathMontage);
+	}
+	if (IsValid(DeathSound))
+	{
+		UGameplayStatics::PlaySound2D(this, DeathSound);
+	}
+	if (GameOverDelay > 0.0f)
+	{
+		GetWorldTimerManager().SetTimer(GameOverTimer, this, &AMyFirstHorrorGameCharacter::ShowGameOver, GameOverDelay, false);
+	}
+	else
+	{
+		ShowGameOver();
+	}
+}
+
+void AMyFirstHorrorGameCharacter::ShowGameOver()
+{
+	APlayerController* Player = Cast<APlayerController>(GetController());
+	if (!IsValid(Player) || !Player->IsLocalPlayerController() || !GameOverClass)
+	{
+		return;
+	}
+
+	GameOverWidget = CreateWidget<UHorrorGameOverWidget>(Player, GameOverClass);
+	if (IsValid(GameOverWidget) && GameOverWidget->AddToPlayerScreen(100))
+	{
+		FInputModeUIOnly Mode;
+		Mode.SetWidgetToFocus(GameOverWidget->TakeWidget());
+		Player->SetInputMode(Mode);
+		Player->bShowMouseCursor = true;
 	}
 }
