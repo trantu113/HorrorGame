@@ -47,7 +47,7 @@ AMyFirstHorrorGameCharacter::AMyFirstHorrorGameCharacter()
 
 	// Note: For faster iteration times these variables, and many more, can be tweaked in the Character Blueprint
 	// instead of recompiling to adjust them
-	GetCharacterMovement()->JumpZVelocity = 500.f;
+	GetCharacterMovement()->GetNavAgentPropertiesRef().bCanJump = false;
 	GetCharacterMovement()->AirControl = 0.35f;
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 	GetCharacterMovement()->MinAnalogWalkSpeed = 20.f;
@@ -157,10 +157,6 @@ void AMyFirstHorrorGameCharacter::SetupPlayerInputComponent(UInputComponent* Pla
 			EnhancedInputComponent->BindAction(ToggleInventoryAction.Get(), ETriggerEvent::Started, this,
 				&AMyFirstHorrorGameCharacter::ToggleInventory);
 		}
-
-		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AMyFirstHorrorGameCharacter::DoJumpStart);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &AMyFirstHorrorGameCharacter::DoJumpEnd);
 
 		// Moving
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMyFirstHorrorGameCharacter::Move);
