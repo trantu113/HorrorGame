@@ -42,6 +42,9 @@ class AMyFirstHorrorGameCharacter : public ACharacter
 	/** A cone of light pointing along the player's view. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<USpotLightComponent> Flashlight;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UPointLightComponent> FlashlightFillLight;
 	
 private:
 	void StartSprint();

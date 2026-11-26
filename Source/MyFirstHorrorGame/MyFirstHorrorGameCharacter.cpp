@@ -12,6 +12,7 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SpotLightComponent.h"
+#include "Components/PointLightComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
@@ -82,6 +83,18 @@ AMyFirstHorrorGameCharacter::AMyFirstHorrorGameCharacter()
 void AMyFirstHorrorGameCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	TInlineComponentArray<UPointLightComponent*> Lights(this);
+	for (UPointLightComponent* Light : Lights)
+	{
+		if (IsValid(Light) && Light->GetFName() == TEXT("PlayerFillLight"))
+		{
+			FlashlightFillLight = Light;
+			Light->SetVisibility(IsValid(Flashlight) && Flashlight->IsVisible());
+			break;
+		}
+	}
+
 	Health->OnHealthChanged.AddDynamic(this, &AMyFirstHorrorGameCharacter::UpdateInjuryFeedback);
 	Health->OnPlayerDied.AddDynamic(this, &AMyFirstHorrorGameCharacter::HandlePlayerDeath);
 	InjuryStrength = 1.0f - Health->GetHealthRatio();
@@ -175,7 +188,12 @@ void AMyFirstHorrorGameCharacter::ToggleFlashlight()
 {
 	if (!InventoryMenu && IsValid(Flashlight))
 	{
-		Flashlight->SetVisibility(!Flashlight->IsVisible());
+		const bool bTurnOn = !Flashlight->IsVisible();
+		Flashlight->SetVisibility(bTurnOn);
+		if (IsValid(FlashlightFillLight))
+		{
+			FlashlightFillLight->SetVisibility(bTurnOn);
+		}
 		if (IsValid(FlashlightToggleSound))
 		{
 			UGameplayStatics::PlaySound2D(this, FlashlightToggleSound.Get());
